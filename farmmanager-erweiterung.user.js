@@ -1,10 +1,14 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 1.0.2) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @description (Version 1.0.3) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
 // @author bmaker (Robert N.)
 // @namespace files.robertnitsch.de
 // @include http://*.die-staemme.de/game.php?*screen=report*view=*
 // @include http://*.die-staemme.de/game.php?*view=*screen=report*
+// @grant GM_log
+// @grant GM_getValue
+// @grant GM_setValue
+// @grant GM_xmlhttpRequest
 // ==/UserScript==
 
 /*	KONFIGURATION */
@@ -49,6 +53,12 @@
 
 /*
 	Changelog:
+
+	Version 1.0.3 (29.11.2012):
+	- jetzt kompatibel mit DS-Version 8.8 (behebt den Bug, dass erspähte Ressourcen immer auf 0 gesetzt wurden)
+
+	Version 1.0.2 (???):
+	- hat einen Escaping-Bug behoben beim Senden des Berichtes
 
 	Version 1.0.1 (03.08.2010):
 	- jetzt kompatibel mit DS-Version 7.3
@@ -258,12 +268,23 @@ function main() {
 				else if(imgs[j].getAttribute('title') == 'Eisen')
 					iron = 'yes';
 			}
+			GM_log("Gespähte Rohstoffe (img-basiert) - Holz: "+wood+" Lehm: "+loam+" Eisen: "+iron);
+			
+			// Seit DS-Version 8.8 wird <span class='icon header wood'></span> verwendet anstatt img-Tags.
+			spans = ths[i].nextSibling.getElementsByTagName("span");
+			for(var j=0; j<spans.length; j++) {
+				if(spans[j].getAttribute('class').match(/wood/))
+					wood = 'yes';
+				else if(spans[j].getAttribute('class').match(/stone/))
+					loam = 'yes';
+				else if(spans[j].getAttribute('class').match(/iron/))
+					iron = 'yes';
+			}
+			GM_log("Gespähte Rohstoffe (span-basiert) - Holz: "+wood+" Lehm: "+loam+" Eisen: "+iron);
 			
 			break;
 		}
 	}
-	
-	GM_log("Gespähte Rohstoffe - Holz: "+wood+" Lehm: "+loam+" Eisen: "+iron);
 	
 	// den Bericht abschicken bzw. einlesen
 	GM_xmlhttpRequest({
