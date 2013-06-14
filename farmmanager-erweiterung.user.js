@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 1.0.1) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @description (Version 1.0.2) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
 // @author bmaker (Robert N.)
 // @namespace files.robertnitsch.de
 // @include http://*.die-staemme.de/game.php?*screen=report*view=*
@@ -50,7 +50,7 @@
 /*
 	Changelog:
 
-	Version 1.0.1 (03.08.2011):
+	Version 1.0.1 (03.08.2010):
 	- jetzt kompatibel mit DS-Version 7.3
 	- man kann jetzt wahlweise den Link bzw. die URL zum Farmmanager *oder* die ID des Farmmanagers angeben
 
@@ -274,7 +274,7 @@ function main() {
 			'Accept': 'application/atom+xml,application/xml,text/xml',
 			'Content-type': 'application/x-www-form-urlencoded',
 		},
-		data: encodeURI('ajax=1&report='+report+'&wood='+wood+'&loam='+loam+'&iron='+iron+'&note=&parse=1'),
+		data: encodeURI('ajax=2&report='+escape(report)+'&wood='+wood+'&loam='+loam+'&iron='+iron+'&note=&parse=1'),
 		onload: function(responseDetails) {
 					try {
 						//var responseXML = new DOMParser().parseFromString(responseDetails.responseText, "text/xml");
