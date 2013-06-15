@@ -1,10 +1,10 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 1.0.3) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
-// @author bmaker (Robert N.)
+// @description (Version 1.1.0) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @author Robert Nitsch (bmaker)
 // @namespace files.robertnitsch.de
-// @include http://*.die-staemme.de/game.php?*screen=report*view=*
-// @include http://*.die-staemme.de/game.php?*view=*screen=report*
+// @include http://*.die-staemme.de/game.php?*screen=report*
+// @include http://*beta.tribalwars.net/game.php?*screen=report*
 // @grant GM_log
 // @grant GM_getValue
 // @grant GM_setValue
@@ -54,6 +54,12 @@
 /*
 	Changelog:
 
+	Version 1.1.0 (Juni 2013):
+	- Konflikte mit anderen Skripts gehören nun der Vergangenheit an (die Farmmanager-Erweiterung
+	  muss aber als erstes Skript ausgeführt werden)
+	- Abbruch bei Eingabe der Farmmanager ID wird nun korrekt behandelt
+	- Skript kann nun auf den Beta-Welten getestet werden
+
 	Version 1.0.3 (29.11.2012):
 	- jetzt kompatibel mit DS-Version 8.8 (behebt den Bug, dass erspähte Ressourcen immer auf 0 gesetzt wurden)
 
@@ -78,7 +84,7 @@
 
 
 /* Reguläre Ausdrücke */
-regex_world = /http:\/\/([0-9a-z]+)\.die\-staemme\.de/i;
+regex_world = /http:\/\/([0-9a-z]+)/i;
 regex_id = /=?([0-9a-zA-Z]{10})$/;
 regex_delete = /L.{1,2}schen/;
 
@@ -101,6 +107,10 @@ function _getFarmmanagerID(world) {
 	id = GM_getValue('fm_id_'+world, false);
 	if(id === false) {
 		id = prompt('Bitte gebe den Link (oder die ID) zu deinem Farmmanager (für Welt '+world+') ein!');
+		if (id === null) {
+			return -3;
+		}
+		
 		id = id.trim();
 		
 		GM_log(id);
@@ -137,6 +147,70 @@ function _getNodeTextRecursively(node, delimeter) {
 		}
 	}
 	return result;
+}
+
+function _parseReport() {
+	var tables = document.getElementsByTagName('table');
+	var table = false;
+	for(var i=0; i<tables.length; i++) {
+		if(tables[i].getAttribute('class') == 'vis' && tables[i].getAttribute('width') == '470') {
+			table = tables[i];
+			break;
+		}
+	}
+
+	if(table == false) {
+		alert("Konnte den Bericht nicht finden.\n\nWahrscheinlich gibt es ein Problem mit einem anderen installierten Greasemonkey-Skript!");
+	}
+
+	var text = _getNodeTextRecursively(table, " ");
+	text = text.replace(/([0-9]+)\s\.\s([0-9]+)/g, '$1.$2');
+	
+	//alert(text);
+	
+	// herausfinden, welche Ressourcen gespäht wurden
+	var wood = 'no';
+	var loam = 'no';
+	var iron = 'no';
+	ths = table.getElementsByTagName('th');
+	for(var i=0; i<ths.length; i++) {
+		if(!ths[i].firstChild)
+			continue;
+		if(!ths[i].firstChild.nodeValue)
+			continue;
+			
+		if(ths[i].firstChild.nodeValue.match(/(Ersp.{1,2}hte\s+Rohstoffe:|Resources scouted:)/i)) {
+			GM_log('"Erspähte Rohstoffe:" gefunden!');
+			imgs = ths[i].nextSibling.getElementsByTagName('img');
+			for(var j=0; j<imgs.length; j++) {
+				//GM_log("test: "+imgs[j].getAttribute('title'));
+				if(imgs[j].getAttribute('title') == 'Holz')
+					wood = 'yes';
+				else if(imgs[j].getAttribute('title') == 'Lehm')
+					loam = 'yes';
+				else if(imgs[j].getAttribute('title') == 'Eisen')
+					iron = 'yes';
+			}
+			GM_log("Gespähte Rohstoffe (img-basiert) - Holz: "+wood+" Lehm: "+loam+" Eisen: "+iron);
+			
+			// Seit DS-Version 8.8 wird <span class='icon header wood'></span> verwendet anstatt img-Tags.
+			spans = ths[i].nextSibling.getElementsByTagName("span");
+			for(var j=0; j<spans.length; j++) {
+				if(spans[j].getAttribute('class').match(/wood/))
+					wood = 'yes';
+				else if(spans[j].getAttribute('class').match(/stone/))
+					loam = 'yes';
+				else if(spans[j].getAttribute('class').match(/iron/))
+					iron = 'yes';
+			}
+			GM_log("Gespähte Rohstoffe (span-basiert) - Holz: "+wood+" Lehm: "+loam+" Eisen: "+iron);
+			
+			break;
+		}
+	}
+	
+	var data = {"wood": wood, "loam": loam, "iron": iron, "text": text};
+	return data;
 }
 
 // Entfernt Whitespaces am Anfang und am Ende eines Strings.
@@ -213,7 +287,7 @@ function _showHTMLSuccessMessage() {
 }
 
 /* Hauptskript */
-function main() {
+function handle_hotkey() {
 	world = _getWorld();
 	id = _getFarmmanagerID(world);
 	
@@ -225,65 +299,13 @@ function main() {
 		_invalidID();
 		return;
 	}
-	
-	tables = document.getElementsByTagName('table');
-	table = false;
-	for(var i=0; i<tables.length; i++) {
-		if(tables[i].getAttribute('class') == 'vis' && tables[i].getAttribute('width') == '470') {
-			table = tables[i];
-			break;
-		}
-	}
-
-	if(table == false) {
-		alert("Konnte den Bericht nicht finden.\n\nWahrscheinlich gibt es ein Problem mit einem anderen installierten Greasemonkey-Skript!");
+	else if (id == -3) {
+		// Abbruch
+		return;
 	}
 	
-	// den Bericht parsen
-	report = _getNodeTextRecursively(table, " ");
-	report = report.replace(/([0-9]+)\s\.\s([0-9]+)/g, '$1.$2');
-	
-	//alert(report);
-	
-	// herausfinden, welche Ressourcen gespäht wurden
-	var wood = 'no';
-	var loam = 'no';
-	var iron = 'no';
-	ths = table.getElementsByTagName('th');
-	for(var i=0; i<ths.length; i++) {
-		if(!ths[i].firstChild)
-			continue;
-		if(!ths[i].firstChild.nodeValue)
-			continue;
-			
-		if(ths[i].firstChild.nodeValue.match(/Ersp.{1,2}hte\s+Rohstoffe:/)) {
-			GM_log('"Erspähte Rohstoffe:" gefunden!');
-			imgs = ths[i].nextSibling.getElementsByTagName('img');
-			for(var j=0; j<imgs.length; j++) {
-				//GM_log("test: "+imgs[j].getAttribute('title'));
-				if(imgs[j].getAttribute('title') == 'Holz')
-					wood = 'yes';
-				else if(imgs[j].getAttribute('title') == 'Lehm')
-					loam = 'yes';
-				else if(imgs[j].getAttribute('title') == 'Eisen')
-					iron = 'yes';
-			}
-			GM_log("Gespähte Rohstoffe (img-basiert) - Holz: "+wood+" Lehm: "+loam+" Eisen: "+iron);
-			
-			// Seit DS-Version 8.8 wird <span class='icon header wood'></span> verwendet anstatt img-Tags.
-			spans = ths[i].nextSibling.getElementsByTagName("span");
-			for(var j=0; j<spans.length; j++) {
-				if(spans[j].getAttribute('class').match(/wood/))
-					wood = 'yes';
-				else if(spans[j].getAttribute('class').match(/stone/))
-					loam = 'yes';
-				else if(spans[j].getAttribute('class').match(/iron/))
-					iron = 'yes';
-			}
-			GM_log("Gespähte Rohstoffe (span-basiert) - Holz: "+wood+" Lehm: "+loam+" Eisen: "+iron);
-			
-			break;
-		}
+	if (report === null) {
+		alert("Der Bericht konnte nicht eingelesen werden.");
 	}
 	
 	// den Bericht abschicken bzw. einlesen
@@ -295,7 +317,7 @@ function main() {
 			'Accept': 'application/atom+xml,application/xml,text/xml',
 			'Content-type': 'application/x-www-form-urlencoded',
 		},
-		data: encodeURI('ajax=2&report='+escape(report)+'&wood='+wood+'&loam='+loam+'&iron='+iron+'&note=&parse=1'),
+		data: encodeURI('ajax=2&report='+escape(report.text)+'&wood='+report.wood+'&loam='+report.loam+'&iron='+report.iron+'&note=&parse=1'),
 		onload: function(responseDetails) {
 					try {
 						//var responseXML = new DOMParser().parseFromString(responseDetails.responseText, "text/xml");
@@ -345,25 +367,39 @@ function main() {
 // globale Variablen
 var delete_after_parsing = false;
 var parsed = false;
+var report;
 
-// Hotkeys...
-document.addEventListener("keydown", function(evt) {
-	// wurde einer der beiden Hotkeys gedrückt?
-	if(evt.keyCode == parse_hotkey) {
-		delete_after_parsing = false;
+function main() {
+	try {
+		report = _parseReport();
+		console.log(report);
+	} catch(err) {
+		report = null;
 	}
-	else if(evt.keyCode == parse_and_delete_hotkey) {
-		delete_after_parsing = true;
-	}
-	else {
-		return;
-	}
-	
-	// sollen alle Fehlermeldungen gemeldet werden?
-	if(debug) {
-		try { main() } catch(e) { alert("Fehler: " + e); }
-	}
-	else {
-		main();
-	}
-}, false);
+
+	// Hotkeys...
+	document.addEventListener("keydown", function(evt) {
+		// wurde einer der beiden Hotkeys gedrückt?
+		if(evt.keyCode == parse_hotkey) {
+			delete_after_parsing = false;
+		}
+		else if(evt.keyCode == parse_and_delete_hotkey) {
+			delete_after_parsing = true;
+		}
+		else {
+			return;
+		}
+		
+		// sollen alle Fehlermeldungen gemeldet werden?
+		if(debug) {
+			try { handle_hotkey() } catch(e) { alert("Fehler: " + e); }
+		}
+		else {
+			handle_hotkey();
+		}
+	}, false);
+}
+
+if (document.URL.match(/\?.*view=[0-9]+/)) {
+	main();
+}
