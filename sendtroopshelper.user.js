@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name SendTroopsHelper
-// @description (Version 1.1.0) Adds GET parameters to the rally point for automatically entering unit numbers into the send troops form.
+// @description (Version 1.1.1) Adds GET parameters to the rally point for automatically entering unit numbers into the send troops form.
 // @author bmaker (Robert N.)
 // @namespace np.bmaker.net
 // @include http://*.die-staemme.de/game.php?*screen=place*
@@ -24,7 +24,7 @@ function getParams() {
 		var keyValue = pairs[i].split("=");
 		GET[keyValue[0]] = keyValue[1];
 		
-		GM_log("Parsed parameter " + keyValue[0] + " with value " + keyValue[1]);
+		console.log("Parsed parameter " + keyValue[0] + " with value " + keyValue[1]);
 	}
 	
 	return GET;
@@ -34,7 +34,7 @@ function main_place() {
 	var form = document.forms.namedItem("units");
 	
 	if (!form) {
-		GM_log("ERROR: Form 'units' not found!");
+		console.log("ERROR: Form 'units' not found!");
 		return;
 	}
 	
@@ -51,7 +51,7 @@ function main_place() {
 		
 		var element = form.elements.namedItem(param);
 		if (!element) {
-			GM_log("ERROR: Form element '" + param + "' not found!");
+			console.log("ERROR: Form element '" + param + "' not found!");
 			continue;
 		}
 		
@@ -63,7 +63,7 @@ function main_popup() {
 	var form = document.forms.namedItem("sendtroops");
 	
 	if (!form) {
-		GM_log("ERROR: Form 'sendtroops' not found!");
+		console.log("ERROR: Form 'sendtroops' not found!");
 		return;
 	}
 	
