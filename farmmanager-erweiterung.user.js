@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 1.1.0) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @description (Version 1.1.1) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
 // @author Robert Nitsch (bmaker)
 // @namespace files.robertnitsch.de
 // @include http://*.die-staemme.de/game.php?*screen=report*
@@ -53,6 +53,9 @@
 
 /*
 	Changelog:
+
+	Version 1.1.1 (Januar 2014):
+	- umgestellt auf neue Domain np.bmaker.de (ehemals np.bmaker.net)
 
 	Version 1.1.0 (Juni 2013):
 	- Konflikte mit anderen Skripts gehören nun der Vergangenheit an (die Farmmanager-Erweiterung
@@ -311,7 +314,7 @@ function handle_hotkey() {
 	// den Bericht abschicken bzw. einlesen
 	GM_xmlhttpRequest({
 		method: 'POST',
-		url: 'http://np.bmaker.net/tools/farmmanager.php?id='+id,
+		url: 'http://np.bmaker.de/tools/farmmanager.php?id='+id,
 		headers: {
 			'User-agent': 'Mozilla/4.0 (compatible) Greasemonkey',
 			'Accept': 'application/atom+xml,application/xml,text/xml',
