@@ -1,11 +1,9 @@
 // ==UserScript==
 // @name SendTroopsHelper
-// @description (Version 1.1.1) Adds GET parameters to the rally point for automatically entering unit numbers into the send troops form.
+// @description (Version 1.2.0) Adds GET parameters to the rally point for automatically entering unit numbers into the send troops form.
 // @author bmaker (Robert N.)
 // @namespace np.bmaker.net
 // @include http://*.die-staemme.de/game.php?*screen=place*
-// @include http://np.bmaker.net/tools/sendtroops.php*
-// @include http://np.bmaker.de/tools/sendtroops.php*
 // ==/UserScript==
 
 function getParams() {
@@ -30,7 +28,7 @@ function getParams() {
 	return GET;
 }
 
-function main_place() {
+function main() {
 	var form = document.forms.namedItem("units");
 	
 	if (!form) {
@@ -59,20 +57,4 @@ function main_place() {
 	}
 }
 
-function main_popup() {
-	var form = document.forms.namedItem("sendtroops");
-	
-	if (!form) {
-		console.log("ERROR: Form 'sendtroops' not found!");
-		return;
-	}
-	
-	form.submit();
-}
-
-var url = document.URL;
-if (url.match(/http:\/\/np\.bmaker\.(?:net|de)\/tools\/sendtroops.php/)) {
-	main_popup();
-} else {
-	main_place();
-}
+main();
