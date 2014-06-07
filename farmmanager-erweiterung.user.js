@@ -1,14 +1,10 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 1.1.1) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @description (Version 2.0) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
 // @author Robert Nitsch (bmaker)
 // @namespace files.robertnitsch.de
 // @include http://*.die-staemme.de/game.php?*screen=report*
 // @include http://*beta.tribalwars.net/game.php?*screen=report*
-// @grant GM_log
-// @grant GM_getValue
-// @grant GM_setValue
-// @grant GM_xmlhttpRequest
 // ==/UserScript==
 
 /*	KONFIGURATION */
@@ -54,6 +50,9 @@
 /*
 	Changelog:
 
+	Version 2.0 (Juni 2014):
+	- kompatibel mit dem Wrapper-Script von der DS Script-Datenbank gemacht
+	
 	Version 1.1.1 (Januar 2014):
 	- umgestellt auf neue Domain np.bmaker.de (ehemals np.bmaker.net)
 
@@ -85,6 +84,7 @@
 
 */
 
+var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
 
 /* Reguläre Ausdrücke */
 regex_world = /http:\/\/([0-9a-z]+)/i;
@@ -92,6 +92,35 @@ regex_id = /=?([0-9a-zA-Z]{10})$/;
 regex_delete = /L.{1,2}schen/;
 
 /* Funktionen */
+
+GM_log = function(str) {
+	var window = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
+	if (window.console) {
+		console.log(str);
+	}
+}
+
+GM_getValue = function(name, defaultValue) {
+	var value = localStorage.getItem(name);
+	if (!value){
+		return defaultValue;
+	}
+	var type = value[0];
+	value = value.substring(1);
+	switch (type) {
+		case 'b':
+			return value == 'true';
+		case 'n':
+			return Number(value);
+	default:
+		return value;
+	}
+}
+
+GM_setValue = function(name, value) {
+	value = (typeof value)[0] + value;
+	localStorage.setItem(name, value);
+}
 
 // Gibt das Kürzel der Welt zurück, auf der der Benutzer spielt
 // Beispiel: de14
@@ -312,56 +341,57 @@ function handle_hotkey() {
 	}
 	
 	// den Bericht abschicken bzw. einlesen
-	GM_xmlhttpRequest({
-		method: 'POST',
-		url: 'http://np.bmaker.de/tools/farmmanager.php?id='+id,
-		headers: {
-			'User-agent': 'Mozilla/4.0 (compatible) Greasemonkey',
-			'Accept': 'application/atom+xml,application/xml,text/xml',
-			'Content-type': 'application/x-www-form-urlencoded',
-		},
-		data: encodeURI('ajax=2&report='+escape(report.text)+'&wood='+report.wood+'&loam='+report.loam+'&iron='+report.iron+'&note=&parse=1'),
-		onload: function(responseDetails) {
-					try {
-						//var responseXML = new DOMParser().parseFromString(responseDetails.responseText, "text/xml");
-						//alert(responseXML.getElementsByTagName('message')[0].firstChild.nodeValue);
-						var success = responseDetails.responseText.match(/erfolgreich eingelesen/i);
-						
-						// das "Bericht wurde erfolgreich eingelesen"-Popup soll nur angezeigt werden,
-						// wenn der Benutzer das so in der Konfiguration festgelegt hat.
-						// Fehlermeldungen werden nach wie vor IMMER in dem Popup angezeigt.
-						if(!success || show_success_popup) {
-							alert(responseDetails.responseText);
-						}
-						
-						// Bei Erfolg soll eine Erfolgsmeldung in der Seite erscheinen.
-						if(success && !parsed) {
-							parsed = true;
-							_showHTMLSuccessMessage();
-						}
-						
-						// Hat Nopaste gemeldet, dass es diesen Farmmanager gar nicht gibt?
-						// => Zurücksetzen der ID
-						if(responseDetails.responseText.match(/Farmmanager nicht gefunden/i)) {
-							_invalidID();
-						}
-						
-						// Hat Nopaste einen Fehler gleich welcher Art gemeldet?
-						// => Dann jetzt abbrechen, denn ein paar Zeilen später kommt das automatische Löschen
-						//	  und das wäre ungünstig im Falle eines Fehlers (weil der Bericht dann unwiderruflich verloren ist).
-						if(responseDetails.responseText.match(/Fehler/i))
-							return;
-					} catch(e) {
-						alert("Der Bericht wurde abgeschickt, aber die Antwort von NoPaste konnte nicht vollständig ausgewertet werden.\n\n"+
-							  "Die genaue Fehlermeldung lautet: \n"+e+
-							  "\n\nDie genaue Antwort von NoPaste lautet: \n"+responseDetails.responseText);
-						return;
-					}
-					
-					// Automatisches Löschen des Berichts?
-					if(delete_after_parsing)
-						_deleteReport();
+	
+	$.ajax({
+		type: 'GET',
+		crossDomain: true,
+		dataType: 'jsonp',
+		url: 'http://np.bmaker.de/tools/farmmanager.php',
+		global: false,
+		traditional: false,
+		jsonpCallback: "nopasteCallback",
+		data: encodeURI('id='+id+'&ajax=3&report='+escape(report.text)+'&wood='+report.wood+'&loam='+report.loam+'&iron='+report.iron+'&note=&parse=1'),
+		success: function(data, textStatus, jqXHR) {
+			try {
+				data = _trim(unescape(data));
+				
+				var success = data.match(/erfolgreich eingelesen/i);
+				
+				// das "Bericht wurde erfolgreich eingelesen"-Popup soll nur angezeigt werden,
+				// wenn der Benutzer das so in der Konfiguration festgelegt hat.
+				// Fehlermeldungen werden nach wie vor IMMER in dem Popup angezeigt.
+				if(!success || show_success_popup) {
+					alert(data);
 				}
+				
+				// Bei Erfolg soll eine Erfolgsmeldung in der Seite erscheinen.
+				if(success && !parsed) {
+					parsed = true;
+					_showHTMLSuccessMessage();
+				}
+				
+				// Hat Nopaste gemeldet, dass es diesen Farmmanager gar nicht gibt?
+				// => Zurücksetzen der ID
+				if(data.match(/Farmmanager nicht gefunden/i)) {
+					_invalidID();
+				}
+				
+				// Hat Nopaste einen Fehler gleich welcher Art gemeldet?
+				// => Dann jetzt abbrechen, denn ein paar Zeilen später kommt das automatische Löschen
+				//	  und das wäre ungünstig im Falle eines Fehlers (weil der Bericht dann unwiderruflich verloren ist).
+				if(data.match(/Fehler/i))
+					return;
+			} catch(e) {
+				alert("Der Bericht wurde abgeschickt, aber die Antwort von NoPaste konnte nicht vollständig ausgewertet werden.\n\n"+
+					  "Die genaue Fehlermeldung lautet: \n"+e+
+					  "\n\nDie genaue Antwort von NoPaste lautet: \n"+data);
+				return;
+			}
+			
+			// Automatisches Löschen des Berichts?
+			if(delete_after_parsing)
+				_deleteReport();
+		}
 	});
 	
 	return 0;
