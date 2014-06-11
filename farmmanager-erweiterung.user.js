@@ -84,6 +84,8 @@
 
 */
 
+var api = typeof unsafeWindow != 'undefined' ? unsafeWindow.ScriptAPI : window.ScriptAPI;
+api.register('Farmmanager - Erweiterung I', true, 'bmaker', 'battlemaker@web.de');
 var $ = typeof unsafeWindow != 'undefined' ? unsafeWindow.$ : window.$;
 
 /* Reguläre Ausdrücke */
