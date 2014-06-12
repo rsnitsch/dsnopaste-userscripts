@@ -407,8 +407,9 @@ var report;
 function main() {
 	try {
 		report = _parseReport();
-		console.log(report);
+		GM_log(report);
 	} catch(err) {
+		GM_log("Fehler in _parseReport: " + err);
 		report = null;
 	}
 
