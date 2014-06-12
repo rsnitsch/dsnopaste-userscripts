@@ -96,8 +96,8 @@ regex_delete = /L.{1,2}schen/;
 /* Funktionen */
 
 GM_log = function(str) {
-	var window = typeof unsafeWindow != 'undefined' ? unsafeWindow : window;
-	if (window.console) {
+	var console = typeof unsafeWindow != 'undefined' ? unsafeWindow.console : window.console;
+	if (console) {
 		console.log(str);
 	}
 }
