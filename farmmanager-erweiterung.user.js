@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 2.0) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @description (Version 2.1) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
 // @author Robert Nitsch (bmaker)
 // @namespace files.robertnitsch.de
 // @include http://*.die-staemme.de/game.php?*screen=report*
@@ -49,6 +49,9 @@
 
 /*
 	Changelog:
+
+	Version 2.1 (August 2014):
+	- in Bericht eingebettete scripts werden ignoriert
 
 	Version 2.0 (Juni 2014):
 	- kompatibel mit dem Wrapper-Script von der DS Script-Datenbank gemacht
@@ -170,6 +173,7 @@ function _getFarmmanagerID(world) {
 // werden durch delimeter getrennt. (Es bietet sich ein Leerzeichen an.)
 function _getNodeTextRecursively(node, delimeter) {
 	var result = '';
+	if(node.nodeName == "SCRIPT") return "";
 	if(node.nodeType == 3) {
 		if(node.nodeValue && !node.nodeValue.match(/^\s+$/)) {
 			result += _trim(node.nodeValue)+delimeter;
