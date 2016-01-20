@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 2.1) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @description (Version 2.2) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
 // @author Robert Nitsch (bmaker)
 // @namespace files.robertnitsch.de
 // @include http://*.die-staemme.de/game.php?*screen=report*
@@ -49,6 +49,10 @@
 
 /*
 	Changelog:
+
+	Version 2.2 (Januar 2016):
+	- benutze gesicherte SSL-Verbindung, um Berichte an NoPaste zu schicken
+	  (andernfalls kamen die Berichte nicht durch, weil DieStämme selbst jetzt SSL verwendet)
 
 	Version 2.1 (August 2014):
 	- in Bericht eingebettete scripts werden ignoriert
@@ -352,7 +356,7 @@ function handle_hotkey() {
 		type: 'GET',
 		crossDomain: true,
 		dataType: 'jsonp',
-		url: 'http://np.bmaker.de/tools/farmmanager.php',
+		url: 'https://np.bmaker.de/tools/farmmanager.php',
 		global: false,
 		traditional: false,
 		jsonpCallback: "nopasteCallback",
