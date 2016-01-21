@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name Farmmanager-Erweiterung
-// @description (Version 2.2) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
+// @description (Version 2.2.1) Berichte können mit einem Tastendruck in den Farmmanager eingelesen werden
 // @author Robert Nitsch (bmaker)
 // @namespace files.robertnitsch.de
-// @include http://*.die-staemme.de/game.php?*screen=report*
+// @include https://*.die-staemme.de/game.php?*screen=report*
 // @include http://*beta.tribalwars.net/game.php?*screen=report*
 // ==/UserScript==
 
